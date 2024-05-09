@@ -20,14 +20,14 @@ export async function replaceUrls<T>(
     if (data.hasOwnProperty('uris')) {
         const typedData = <StaticResource>data;
         for (let i = 0; i < typedData.uris.length; i++) {
-            if (typedData.uris.includes('http') || typedData.uris.includes('https')) {
+            if (typedData.uris[i].includes('http') || typedData.uris[i].includes('https')) {
                 continue;
             }
-
             const splitString = typedData.uris[i].split('.');
             const extension = splitString[splitString.length - 1];
+            const name = splitString[splitString.length - 2];
             const finalURL = `${environmentURL}/${encodeURIComponent(collectionName.replace(/\s/g, ''))}/${
-                typedData.integrity?.hash
+                name
             }.${extension}`
                 // To remove any query params (if they exist on any external urls) from the output url (output url in this case is the url of S3/Wasabi buckets)
                 // This will fix, for eg:

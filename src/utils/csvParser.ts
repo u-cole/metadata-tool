@@ -33,7 +33,7 @@ const Internal = {
      * @param {any} record - The record object that is passed to the function.
      * @returns An object of type Metadata
      */
-    prepareMetadata(record: any): Metadata {
+    async prepareMetadata(record: any): Promise<Metadata> {
         let metadata = {} as Metadata;
         metadata.specVersion = record['specVersion'];
         metadata.name = record['name'];
@@ -44,26 +44,27 @@ const Internal = {
 
         metadata.media = {
             product: {
-                contentType: pathToMimeType(record['product']),
+                contentType: await pathToMimeType(record['product']),
                 integrity: null,
                 uris: [record['product']],
             },
             square: {
-                contentType: pathToMimeType(record['square']),
+                contentType: await pathToMimeType(record['square']),
                 integrity: null,
                 uris: [record['square']],
             },
         };
+       
 
         if (record['hero']) {
             metadata.media.hero = {
-                contentType: pathToMimeType(record['hero']),
+                contentType: await pathToMimeType(record['hero']),
                 integrity: null,
                 uris: [record['hero']],
             };
         }
-
-        metadata.media.gallery = [
+ 
+        let gal =  [
             record['gallery 1'],
             record['gallery 2'],
             record['gallery 3'],
@@ -76,18 +77,23 @@ const Internal = {
             record['gallery 10'],
             record['gallery 11'],
             record['gallery 12'],
-        ].reduce(function (result: StaticResource[], element) {
-            // if gallery N is not empty, i.e file path is provided, transform it to StaticResource type
-            if (element) {
-                result.push({
-                    contentType: pathToMimeType(element),
+        ]
+          
+        let galleryResources: StaticResource[] = [];
+       
+        await Promise.all(gal.map(async (element) => {
+            if(element)
+            await pathToMimeType(element).then(d => {
+                galleryResources.push({
+                    contentType: d,
                     integrity: null,
                     uris: [element],
                 });
-            }
-            return result;
-        }, []);
-
+            })
+            
+        }))
+         
+        metadata.media.gallery = galleryResources;
         return metadata;
     },
     /**
@@ -95,10 +101,10 @@ const Internal = {
      * @param {any} record - the row of the CSV file
      * @returns An object of type FactoryMetaData
      */
-    prepareFactory(record: any): FactoryMetaData {
+    async prepareFactory(record: any): Promise<FactoryMetaData> {
         let factory: FactoryMetaData = {
             tokenUriTemplate: record['Token URI Template'],
-            ...Internal.prepareMetadata(record),
+            ...await(Internal.prepareMetadata(record)),
         };
 
         // parse/process/add any FactoryMetadata specific properties here
@@ -141,8 +147,8 @@ const Internal = {
      * @param {any} record - any - this is the record that was parsed from the CSV file.
      * @returns  An object of type TokenMetaData
      */
-    prepareToken(record: any): TokenMetaData {
-        let token: TokenMetaData = { serialNumber: record['serialNumber'], ...Internal.prepareMetadata(record) };
+    async prepareToken(record: any): Promise<TokenMetaData> {
+        let token: TokenMetaData = { serialNumber: record['serialNumber'], ...await(Internal.prepareMetadata(record)) };
 
         // parse/process/add any TokenMetaData specific properties here
         const tempAttributeList = [
